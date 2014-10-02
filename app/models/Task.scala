@@ -20,6 +20,12 @@ object Task {
       SQL("select * from task").as(task *)
    }
 
+   def getTask(id: Long): Option[Task] = DB.withConnection { implicit c =>
+      SQL("select * from task where id = {id}").on(
+         'id -> id
+      ).as(task.singleOpt)
+   }
+
    def create(label: String) {
       DB.withConnection { implicit c =>
          SQL("insert into task (label) values ({label})").on(

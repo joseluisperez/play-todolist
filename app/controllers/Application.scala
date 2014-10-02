@@ -5,6 +5,7 @@ import play.api.mvc._
 import play.api.data._
 import play.api.data.Forms._
 import models.Task
+import play.api.libs.json.Json
 
 object Application extends Controller {
 
@@ -18,6 +19,16 @@ object Application extends Controller {
 
   def tasks = Action {
     Ok(views.html.index(Task.all(), taskForm))
+  }
+
+  def getTask(id: Long) = Action {
+    Task.getTask(id) match {
+      case Some(task) => 
+        Ok( Json.toJson(Map(
+          "id" -> Json.toJson(task.id),
+          "label" -> Json.toJson(task.label))))
+      case None => NotFound
+    }
   }
 
   def newTask = Action { implicit request =>
