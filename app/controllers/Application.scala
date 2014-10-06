@@ -35,11 +35,13 @@ object Application extends Controller {
     taskForm.bindFromRequest.fold(
       errors => BadRequest(views.html.index(Task.all(), errors)),
       label => {
-        Task.create(label)
-        Redirect(routes.Application.tasks)
+        Created(Json.toJson(Map(
+          "id" -> Json.toJson(Task.create(label)),
+          "label" -> Json.toJson(label))))
       }
     )
   }
+
 
   def deleteTask(id: Long) = Action {
     Task.delete(id)
