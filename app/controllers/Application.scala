@@ -14,11 +14,15 @@ object Application extends Controller {
    )
 
   def index = Action {
-    Ok(views.html.index(Task.all(), taskForm))
+    Ok(views.html.index(Task.all("Anonimo"), taskForm))
   }
 
   def tasks = Action {
-    Ok(collectionToJson(Task.all()))
+    Ok(collectionToJson(Task.all("Anonimo")))
+  }
+
+  def userTasks(login: String = "Anonimo") = Action {
+    Ok(collectionToJson(Task.all(login)))
   }
 
   def getTask(id: Long) = Action {
@@ -33,7 +37,7 @@ object Application extends Controller {
 
   def newTask = Action { implicit request =>
     taskForm.bindFromRequest.fold(
-      errors => BadRequest(views.html.index(Task.all(), errors)),
+      errors => BadRequest(views.html.index(Task.all("Anonimo"), errors)),
       label => {
         Created(Json.toJson(Map(
           "id" -> Json.toJson(Task.create(label)),
