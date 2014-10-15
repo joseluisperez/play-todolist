@@ -14,11 +14,11 @@ object Application extends Controller {
    )
 
   def index = Action {
-    Redirect(routes.Application.tasks)
+    Ok(views.html.index(Task.all(), taskForm))
   }
 
   def tasks = Action {
-    Ok(views.html.index(Task.all(), taskForm))
+    Ok(collectionToJson(Task.all()))
   }
 
   def getTask(id: Long) = Action {
@@ -48,4 +48,24 @@ object Application extends Controller {
     Redirect(routes.Application.tasks)
   }
 
+  def collectionToJson(list: List[Task]): String = {
+    var x = 0
+    var text:String = "["
+    for(x <- 0 to list.size-1){
+//      text=text+"{\"id\":"+list(x).id+",\"label\":\""+list(x).label+"\"},"
+      text=text+taskToJson(list(x))+","
+    }
+    if(text.length>1)
+      text.subSequence(0, text.length()-1)+"]"
+    else
+      text+"]"
+  }
+
+  def taskToJson(t: Task): String = {
+    t match{
+      case task =>
+        "{\"id\":"+task.id+",\"label\":\""+task.label+"\"}"
+      case _ => "{}"
+    }
+  }
 }
