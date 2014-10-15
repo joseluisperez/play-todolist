@@ -44,8 +44,10 @@ object Application extends Controller {
 
 
   def deleteTask(id: Long) = Action {
-    Task.delete(id)
-    Redirect(routes.Application.tasks)
+    Task.delete(id) match {
+      case 0 => NotFound
+      case _ => Redirect(routes.Application.tasks)
+    }
   }
 
   def collectionToJson(list: List[Task]): String = {
