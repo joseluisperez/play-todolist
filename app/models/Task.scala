@@ -1,47 +1,68 @@
 package models
-
-import anorm._
-import anorm.SqlParser._
 import play.api.db._
 import play.api.Play.current
+import anorm._
+import anorm.SqlParser._
+import java.util.Date
 
-case class Task(id: Long, label: String)
+case class Task(id: Long, label: String, taskOwner: String, deadline: Option[Date] = None)
 
 object Task {
 
    val task = {
-      get[Long]("id") ~
-      get[String]("label") map {
-         case id~label => Task(id, label)
+      get[Long]("id") ~ 
+      get[String]("label") ~ 
+      get[String]("task_owner") ~ 
+      get[Option[Date]]("deadline") map {
+         case id~label~user~deadline => Task(id, label, user, deadline)
+      }
+   }
+ 
+   def all(): List[Task] = DB.withConnection { implicit c =>
+     SQL("select * from task").as(task *)
+   }
+
+   def all(user: String, dateStr: Option[Date] = None): List[Task] = DB.withConnection { implicit c =>
+      dateStr match {
+          case Some(date) => SQL("select * from task where task_owner = {user} and deadline = {date}").on (
+                                 'user -> user,
+                                 'date -> date
+                              ).as(task *)
+          case None => SQL("select * from task where task_owner = {user}").on (
+                                 'user -> user
+                              ).as(task *)
       }
    }
 
-  def all(login: String): List[Task] = DB.withConnection { implicit c =>
-      SQL("select * from task where usuario_id = select id from task_user where nick = {login}").on(
-        'login -> login
-      ).as(task *)
+   def create(label: String, taskOwner: String, deadline: Option[Date] = None): Long = {
+      DB.withConnection { implicit c =>
+         val id: Option[Long]  = 
+            SQL("insert into task (label, task_owner, deadline) values ({label}, {taskOwner},{deadline})").on(
+               'label -> label,
+               'taskOwner -> taskOwner,
+               'deadline -> deadline
+            ).executeInsert()
+
+         //Devolvemos -1 si el insert devuelve None
+         id.getOrElse(-1)
+     }
    }
 
-   def getTask(id: Long): Option[Task] = DB.withConnection { implicit c =>
-      SQL("select * from task where id = {id}").on(
+   def findById(id: Long): Option[Task] = {
+      DB.withConnection { implicit connection =>
+         SQL("select * from task where id = {id}").on('id -> id).as(Task.task.singleOpt)
+      }
+   }
+   
+   def delete(id: Long): Boolean = {
+     DB.withConnection { implicit c =>
+       val result: Int = SQL("delete from task where id = {id}").on(
          'id -> id
-      ).as(task.singleOpt)
+       ).executeUpdate()
+       result match {
+         case 1 => true
+         case _ => false
+       }
+     }
    }
-
-   def create(label: String): Option[Long] = {
-      DB.withConnection { implicit c =>
-         SQL("insert into task (label) values ({label})").on(
-           'label -> label
-         ).executeInsert()
-      }
-   }
-
-   def delete(id: Long): Long = {
-      DB.withConnection { implicit c =>
-         SQL("delete from task where id = {id}").on(
-            'id -> id
-         ).executeUpdate()
-      }
-   }
-
 }

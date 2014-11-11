@@ -5,73 +5,82 @@ import play.api.mvc._
 import play.api.data._
 import play.api.data.Forms._
 import models.Task
-import play.api.libs.json.Json
+import models.User
+import java.util.Date
+import java.text.SimpleDateFormat
+
+// JSON
+
+import play.api.mvc._
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
+
+case class TaskData(label: String, user: String, deadline: Option[Date])
 
 object Application extends Controller {
 
+   val dateWrite = Writes.dateWrites("yyyy-MM-dd")
+   val formatter = new SimpleDateFormat("yyyy-MM-dd")
+
+   implicit val locationWrites: Writes[Task] = (
+      (JsPath \ "id").write[Long] and
+      (JsPath \ "label").write[String] and
+      (JsPath \ "taskOwner").write[String] and
+      (JsPath \ "deadline").writeNullable[Date](dateWrite)
+   )(unlift(Task.unapply))
+
    val taskForm = Form(
-      "label" -> nonEmptyText
+      mapping( 
+         "label" -> nonEmptyText,
+         "usuario" -> nonEmptyText,
+         "deadline" -> optional(date("yyyy-MM-dd"))
+      )(TaskData.apply)(TaskData.unapply)
    )
 
-  def index = Action {
-    Ok(views.html.index(Task.all("Anonimo"), taskForm))
-  }
+   def index = Action {
+      Ok(views.html.index(Task.all(), taskForm))
+   }
 
-  def tasks = Action {
-    Ok(collectionToJson(Task.all("Anonimo")))
-  }
+   def tasks = Action {
+      Ok(Json.toJson(Task.all("anonymous")))
+   }
 
-  def userTasks(login: String = "Anonimo") = Action {
-    Ok(collectionToJson(Task.all(login)))
-  }
+   def tasksUserToday(user: String) = tasksUser(user, Some(formatter.format(new Date)))
 
-  def getTask(id: Long) = Action {
-    Task.getTask(id) match {
-      case Some(task) => 
-        Ok( Json.toJson(Map(
-          "id" -> Json.toJson(task.id),
-          "label" -> Json.toJson(task.label))))
-      case None => NotFound
-    }
-  }
-
-  def newTask = Action { implicit request =>
-    taskForm.bindFromRequest.fold(
-      errors => BadRequest(views.html.index(Task.all("Anonimo"), errors)),
-      label => {
-        Created(Json.toJson(Map(
-          "id" -> Json.toJson(Task.create(label)),
-          "label" -> Json.toJson(label))))
+   def tasksUser(user: String, dateStr: Option[String]) = Action {
+      if (User.exists(user)) {
+         val date = dateStr match {
+            case Some(dateStr) => Some(formatter.parse(dateStr))
+            case None => None
+         }
+         Ok(Json.toJson(Task.all(user, date)))
       }
-    )
-  }
+      else BadRequest("Error: No existe el propietario de la tarea: " + user)
+   }
 
+   def findTask(id: Long) = Action {
+      val task:Option[Task] = Task.findById(id)
+      task match {
+         case Some(t) => Ok(Json.toJson(t))
+         case None => NotFound
+      }
+   }
 
-  def deleteTask(id: Long) = Action {
-    Task.delete(id) match {
-      case 0 => NotFound
-      case _ => Redirect(routes.Application.tasks)
-    }
-  }
+   def newTask = newTaskUser("anonymous")
 
-  def collectionToJson(list: List[Task]): String = {
-    var x = 0
-    var text:String = "["
-    for(x <- 0 to list.size-1){
-//      text=text+"{\"id\":"+list(x).id+",\"label\":\""+list(x).label+"\"},"
-      text=text+taskToJson(list(x))+","
-    }
-    if(text.length>1)
-      text.subSequence(0, text.length()-1)+"]"
-    else
-      text+"]"
-  }
+   def newTaskUser(user: String) = Action { implicit request =>
+     taskForm.bindFromRequest.fold(
+       errors => BadRequest("Error en la peticion"),
+       taskData => if (User.exists(taskData.user)) {
+                   val id: Long = Task.create(taskData.label, taskData.user, taskData.deadline)
+                   val task = Task.findById(id)
+                   Created(Json.toJson(Task.findById(id)))
+                }
+                else BadRequest("Error: No existe el propietario de la tarea: " + taskData.user)
+     )
+   }
 
-  def taskToJson(t: Task): String = {
-    t match{
-      case task =>
-        "{\"id\":"+task.id+",\"label\":\""+task.label+"\"}"
-      case _ => "{}"
-    }
-  }
+   def deleteTask(id: Long) = Action {
+     if (Task.delete(id)) Ok else NotFound
+   }
 }
