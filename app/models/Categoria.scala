@@ -16,4 +16,11 @@ object Categoria {
      }
    }
 
+   def exists(name: String): Boolean ={ 
+      DB.withConnection { implicit c =>
+         SQL("select count(*) from category where name = {name}").on(
+            'name -> name).as(scalar[Long].single) == 1
+      }
+   }
+
 }

@@ -25,7 +25,18 @@ class categoriaSpec extends Specification {
       }
     }
 
+    "categoria ocio no existe" in {
+      running(FakeApplication(additionalConfiguration = inMemoryDatabase())) {
+        Categoria.exists("ocio") must equalTo(false)
+      }
+    }
+
+    "categoria deporte existe" in {
+      running(FakeApplication(additionalConfiguration = inMemoryDatabase())) {
+        Categoria.create("deporte")
+        Categoria.exists("deporte") must equalTo(true)      
+      }
+    }
 
   }
-
 }
