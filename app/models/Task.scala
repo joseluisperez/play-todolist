@@ -16,8 +16,10 @@ object Task {
       }
    }
 
-   def all(): List[Task] = DB.withConnection { implicit c =>
-      SQL("select * from task").as(task *)
+  def all(login: String): List[Task] = DB.withConnection { implicit c =>
+      SQL("select * from task where usuario_id = select id from task_user where nick = {login}").on(
+        'login -> login
+      ).as(task *)
    }
 
    def getTask(id: Long): Option[Task] = DB.withConnection { implicit c =>
