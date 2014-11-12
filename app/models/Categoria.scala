@@ -16,6 +16,17 @@ object Categoria {
      }
    }
 
+def create(owner: String, name: String): Long ={ 
+      DB.withConnection { implicit c =>
+         val id: Option[Long]  = 
+            SQL("insert into task (task_owner, category) values ({name}, {owner})").on(
+               'name -> name,
+               'owner -> owner
+            ).executeInsert()
+         id.getOrElse(-1)
+     }
+   }   
+
    def exists(name: String): Boolean ={ 
       DB.withConnection { implicit c =>
          SQL("select count(*) from category where name = {name}").on(
