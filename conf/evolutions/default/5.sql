@@ -7,6 +7,8 @@ CREATE TABLE category (
     id integer NOT NULL DEFAULT nextval('category_id_seq'),
     name varchar(255)
 );
+
+ALTER TABLE task ADD category varchar(255);
  
 # --- !Downs
  

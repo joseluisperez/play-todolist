@@ -6,6 +6,7 @@ import play.api.data._
 import play.api.data.Forms._
 import models.Task
 import models.User
+import models.Categoria
 import java.util.Date
 import java.text.SimpleDateFormat
 
@@ -83,4 +84,17 @@ object Application extends Controller {
    def deleteTask(id: Long) = Action {
      if (Task.delete(id)) Ok else NotFound
    }
+
+
+   def newCategory(user: String) = Action {
+      //Categoria.create(user, "default")
+      Created("")
+   }
+
+
+   def newCategoryTask(user: String, category: String) = Action {
+      Created("")
+   }
+
+
 }
